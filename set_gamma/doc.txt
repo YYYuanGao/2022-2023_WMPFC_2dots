@@ -1,0 +1,4 @@
+1 test room 2
+2 20171117
+3 min 0.05  max 91.48  
+4 unit? cd/m2?
