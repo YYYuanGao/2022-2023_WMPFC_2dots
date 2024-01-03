@@ -3,6 +3,13 @@
 % colors
 % By Yuan    @ 20230830
 % By Yuan    @ 20231227
+% By Yuan    @ 20231229
+
+%% 
+resDir = [CurrDir '\Results\behavior\' SubjID '\'];
+if ~isdir(resDir)
+    mkdir(resDir);
+end
 
 if exist([CurrDir '\Results\behavior\' SubjID '\' SubjID '_Sess' num2str(SessID) '_SpatialTask_color_run' num2str(RunID) '.mat'],'file')
     ShowCursor;
@@ -17,6 +24,30 @@ timePoints = zeros(Param.DisBehav.TrialNum,10);
 trial_index = randperm(Param.DisBehav.TrialNum);
 trial_index = mod(trial_index,Param.Discri.DirectionNum)+1;
 
+%% Create sequence 
+% To minimise sampling bias, a uniformly distributed sampling sequence is
+% created. Column1 = stimu1, Column2 = stimu2, Column(end) = cue.
+if CounBalance == 1
+    if RunID == 1
+        squmat = zeros(Param.DisBehav.TrialNum * Behav_Run_Num,Param.SpatialDot.DiskNum+1);
+        All_Comb = nchoosek(1:length(Param.Discri.Directions),Param.SpatialDot.DiskNum);
+        Comb_Num = size(All_Comb,1);
+        Mini_Num = floor((Param.DisBehav.TrialNum * Behav_Run_Num) / (Comb_Num * Param.SpatialDot.DiskNum));
+
+        squmat(1:Param.SpatialDot.DiskNum*Mini_Num*Comb_Num,1:end-1) = repmat(All_Comb,Param.SpatialDot.DiskNum*Mini_Num,1);
+        squmat(1:Param.SpatialDot.DiskNum*Mini_Num*Comb_Num,end) = reshape(repmat(1:Param.SpatialDot.DiskNum,Comb_Num,Mini_Num),[],1);
+
+        remainder = mod(Param.DisBehav.TrialNum * Behav_Run_Num, Comb_Num * Param.SpatialDot.DiskNum);
+        squmat(Param.SpatialDot.DiskNum*Mini_Num*Comb_Num+1:end,1:end) = squmat(randsample(Comb_Num * Param.SpatialDot.DiskNum,remainder),1:end);
+        randsort = randperm(size(squmat,1));
+        squmat = squmat(randsort,:,:);
+        squmat = squmat(randsort,:,:);
+
+        save([resDir SubjID '_Sess' num2str(SessID) '_Squence.mat'],'squmat')
+    else
+        load([resDir SubjID '_Sess' num2str(SessID) '_Squence.mat'])
+    end
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%% Results Matrix %%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -26,7 +57,6 @@ trial_index = mod(trial_index,Param.Discri.DirectionNum)+1;
 % 7- test angle             8- response, 1 = left, 2 = right
 % 9- acc, 1 = right, 0 = wrong 
 % 10- sample 1 actual      11- sample 2 actual 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%% TimePoint Matrix %%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -117,6 +147,11 @@ while (~UD.stop)
 
 
     % determine the two locations
+    if CounBalance == 1
+       results(trial_i,3) = squmat((RunID-1)*Param.DisBehav.TrialNum+trial_i,1);
+       results(trial_i,4) = squmat((RunID-1)*Param.DisBehav.TrialNum+trial_i,2);
+       results(trial_i,5) = squmat((RunID-1)*Param.DisBehav.TrialNum+trial_i,3);
+    else
     if rand > 0.5 
         results(trial_i,3) = trial_index(trial_i);  % target location = first sample
         temp = 1:Param.Discri.DirectionNum;
@@ -132,7 +167,7 @@ while (~UD.stop)
         results(trial_i,3) = temp(temp_loc);
         results(trial_i,5) = 2;
     end
-               
+      end         
     % task start time
     trial_onset = GetSecs;
     timePoints(trial_i,1) = trial_onset;
@@ -260,12 +295,6 @@ disp(' ');
 
 %% save data
 threshold_value = PAL_AMUD_analyzeUD(UD, 'reversals', max(UD.reversal)-Param.Staircase.ReversalsUsed);
-
-resDir = [CurrDir '\Results\behavior\' SubjID '\'];
-if ~isdir(resDir)
-    mkdir(resDir);
-end
-
 cd(resDir);
 resName = [SubjID '_Sess' num2str(SessID) '_SpatialTask_color_run' num2str(RunID) '.mat'];
 save(resName,'results','timePoints','UD','threshold_value','subjAccu','Param');
@@ -287,9 +316,9 @@ catch rdf
     rdf;
 end
 
-figure(1);
-analEdf_fra([mainfilename '.edf'],Param);
-hold on;
+%figure(1);
+%analEdf_fra([mainfilename '.edf'],Param);
+%hold on;
 
 figure(2);
 edf_used=Edf2Mat([mainfilename '.edf'],1);
