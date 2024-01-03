@@ -5,6 +5,12 @@
 % By Yinghua @ 20230518
 % By Yuan    @ 20230905
 % By Yuan    @ 20231223
+% By Yuan    @ 20231229
+
+resDir = [CurrDir '\Results\fMRI\' SubjID '\'];
+if ~isdir(resDir)
+    mkdir(resDir);
+end
 
 if exist([CurrDir '\Results\fMRI\' SubjID '\' SubjID '_Sess' num2str(SessID) '_SpatialTask_color_run' num2str(RunID) '.mat'],'file')
     ShowCursor;
@@ -18,6 +24,31 @@ results = zeros(Param.DisfMRI.TrialNum,11);
 timePoints = zeros(Param.DisfMRI.TrialNum,11);
 trial_index = randperm(Param.DisfMRI.TrialNum);
 trial_index = mod(trial_index,Param.Discri.DirectionNum)+1;
+
+%% Create sequence 
+% To minimise sampling bias, a uniformly distributed sampling sequence is
+% created. Column1 = stimu1, Column2 = stimu2, Column(end) = cue.
+if CounBalance == 1
+    if RunID == 1
+        squmat = zeros(Param.DisfMRI.TrialNum * fMRI_Run_Num,Param.SpatialDot.DiskNum+1);
+        All_Comb = nchoosek(1:length(Param.Discri.Directions),Param.SpatialDot.DiskNum);
+        Comb_Num = size(All_Comb,1);
+        Mini_Num = floor((Param.DisfMRI.TrialNum * fMRI_Run_Num) / (Comb_Num * Param.SpatialDot.DiskNum));
+
+        squmat(1:Param.SpatialDot.DiskNum*Mini_Num*Comb_Num,1:end-1) = repmat(All_Comb,Param.SpatialDot.DiskNum*Mini_Num,1);
+        squmat(1:Param.SpatialDot.DiskNum*Mini_Num*Comb_Num,end) = reshape(repmat(1:Param.SpatialDot.DiskNum,Comb_Num,Mini_Num),[],1);
+
+        remainder = mod(Param.DisfMRI.TrialNum * fMRI_Run_Num, Comb_Num * Param.SpatialDot.DiskNum);
+        squmat(Param.SpatialDot.DiskNum*Mini_Num*Comb_Num+1:end,1:end) = squmat(randsample(Comb_Num * Param.SpatialDot.DiskNum,remainder),1:end);
+        randsort = randperm(size(squmat,1));
+        squmat = squmat(randsort,:,:);
+        squmat = squmat(randsort,:,:);
+
+        save([resDir SubjID '_Sess' num2str(SessID) '_Squence.mat'],'squmat')
+    else
+        load([resDir SubjID '_Sess' num2str(SessID) '_Squence.mat'])
+    end
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%% Results Matrix %%%%%%%%%%%%%%%%%%%%%%%
@@ -38,6 +69,7 @@ trial_index = mod(trial_index,Param.Discri.DirectionNum)+1;
 % 7- Delay duration         8- Test duration
 % 9- reaction time          10- ITI
 % 11- trial duration
+
 %% Main experiment
 %% Display hint
 curr_textBounds = Screen('TextBounds', wnd,'Task will begin soon');
@@ -76,6 +108,11 @@ for trial_i = 1:Param.DisfMRI.TrialNum
     curr_jitter = jitter_temp * results(trial_i,6);
       
     % determine the two locations
+    if CounBalance == 1
+        results(trial_i,3) = squmat((RunID-1)*Param.DisfMRI.TrialNum+trial_i,1);
+        results(trial_i,4) = squmat((RunID-1)*Param.DisfMRI.TrialNum+trial_i,2);
+        results(trial_i,5) = squmat((RunID-1)*Param.DisfMRI.TrialNum+trial_i,3);
+    else
     if rand > 0.5 
         results(trial_i,3) = trial_index(trial_i);  % target location = first sample
         temp = 1:Param.Discri.DirectionNum;
@@ -91,7 +128,7 @@ for trial_i = 1:Param.DisfMRI.TrialNum
         results(trial_i,3) = temp(temp_loc);
         results(trial_i,5) = 2;
     end
-
+  end
     %% base location
     curr_loc = zeros(3,Param.SpatialDot.DiskNum); 
     results(trial_i,10) = Param.Discri.Directions(results(trial_i,3)) + (rand - 0.5) * 2 *Param.SpatialDot.AngleJitter;
@@ -125,7 +162,7 @@ for trial_i = 1:Param.DisfMRI.TrialNum
     timePoints(trial_i,1) = trial_onset;
     % Prefix
     Screen('FillOval',wnd,Param.Fixation.OvalColor,Param.Fixation.OvalLoc);
-    Screen('DrawLines',wnd,Param.Fixation.CrossLoc2,Param.Fixation.CrossWidth,Param.Fixation.CrossColor,[],1);
+    %Screen('DrawLines',wnd,Param.Fixation.CrossLoc2,Param.Fixation.CrossWidth,Param.Fixation.CrossColor,[],1);
     vbl = Screen('Flip',wnd);
     % vbl = Screen('Flip',wnd,vbl+ Param.Trial.ITIColor);
     timePoints(trial_i,2) = vbl-timePoints(trial_i,1);
@@ -223,14 +260,9 @@ disp(['Accuracy: ' num2str(Accu)]);
 disp(' ');
 
 %% save data
-resDir = [CurrDir '\Results\fMRI\' SubjID '\'];
-if ~isdir(resDir)
-    mkdir(resDir);
-end
-
 cd(resDir);
 resName = [SubjID '_Sess' num2str(SessID) '_spatialTask_color_run' num2str(RunID) '.mat'];
-save(resName,'results','Accu','Param','Exp_Start','endOfExpmt');
+save(resName,'results','timePoints','Accu','Param');
 cd(CurrDir);
 %%
 warning on;
