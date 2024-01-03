@@ -74,16 +74,16 @@ Screen('TextSize', wnd, Param.Text.Size);
 Param.RDK.DotNum     = 400;
 Param.RDK.DotSize    = 6; 
 %Param.RDK.Direction  = 360-120;   % 0=Rihgt 90=down 180=left 270=up
-Param.RDK.Speed      = 8;         % Watanabe 14.2  %µ„‘À∂ØÀŸ∂»£¨”√”⁄øÿ÷∆ µ—Èƒ—∂»
+Param.RDK.Speed      = 8;         % Watanabe 14.2  % speed of motion dots --- how difficult is
 Param.RDK.Coherence  = 1;         %0-1
 
 Param.RDK.OuterRadius= 5*Param.Settings.PixelPerDegree;         % radius
 Param.RDK.InnerRadius= 0.5*Param.Settings.PixelPerDegree;       % radius
 Param.RDK.Duration   = 0.4;                                     % s
 Param.RDK.testDuration   = 1.2;                                 % s
-Param.RDK.FramesPerMove = 1;                                    % √øXX∏ˆframe∏¸–¬µ„µƒŒª÷√
-Param.RDK.NumFrames  = Param.RDK.Duration*NominalFrameRate/Param.RDK.FramesPerMove;         %◊¢“‚£∫’‚¿Ô±ÿ–Î «’˚ ˝
-Param.RDK.StepPerMove   = Param.RDK.FramesPerMove/NominalFrameRate*Param.RDK.Speed*Param.Settings.PixelPerDegree; %“∆∂Øpixel ˝
+Param.RDK.FramesPerMove = 1;                                    % every XX frame, refresh the loc
+Param.RDK.NumFrames  = Param.RDK.Duration*NominalFrameRate/Param.RDK.FramesPerMove;         % NoteÔºÅÔºÅThis must be an integer
+Param.RDK.StepPerMove   = Param.RDK.FramesPerMove/NominalFrameRate*Param.RDK.Speed*Param.Settings.PixelPerDegree; % Number of moving pixels
 Param.RDK.OvalSize      = 5*Param.Settings.PixelPerDegree;
 Param.RDK.OvalLoc       = [Param.Stimuli.Locations(Param.Stimuli.LocationUsed,1)-Param.RDK.OvalSize, ...
                            Param.Stimuli.Locations(Param.Stimuli.LocationUsed,2)-Param.RDK.OvalSize, ...
@@ -92,8 +92,8 @@ Param.RDK.OvalLoc       = [Param.Stimuli.Locations(Param.Stimuli.LocationUsed,1)
 
 %% Parameters for Trials
 Param.Trial.TR = 2.5;
-Param.Trial.Duration_fMRI = 7 * Param.Trial.TR; % 17.5s
-Param.Trial.Duration_Beh  = 12 * Param.Trial.TR; % 30s
+Param.Trial.Duration_fMRI = 12 * Param.Trial.TR; % 17.5s
+Param.Trial.Duration_Beh  = 7 * Param.Trial.TR; % 30s
 
 Param.Trial.ISI = 0.6; 
 Param.Trial.Cue = 1.2;
@@ -119,7 +119,8 @@ Param.Trial.ITIColor = 5*Param.Trial.TR;
 Param.Trial.MaxRT  = 2;
 
 %% Discrimination
-Param.Discri.Directions   = [15,75,135,195,255,315]; % 6 directions
+Param.Discri.Directions   = [15,75,135,195,255,315]; % 6 directionsÔºå
+% Note that 0 degrees here is 0 degrees for the horizontal position (wondering why it's not psycho's default value, crash ###!!! )
 Param.Discri.DirectionNum = length(Param.Discri.Directions);
 Param.Discri.StiLocation  = 3;
 Param.Discri.Jitter       = 10;
@@ -130,7 +131,7 @@ Param.DisfMRI.AngleDelta   = Curr_AngleDelta;
 Param.DisfMRI.Dummy        = 2*Param.Trial.TR;
 
 %% Behaviour 
-Param.DisBehav.TrialNum     = 36;
+Param.DisBehav.TrialNum     = 40; % 40 * 3 = 120
 Param.DisBehav.minirun      = 24;
 Param.DisBehav.AngleDelta   = Curr_AngleDelta;
 
